@@ -1,4 +1,6 @@
-package com.badlogic.drop;
+package com.ismael.gamedrop;
+
+import android.util.Log;
 
 import java.util.Iterator;
 
@@ -7,36 +9,45 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.audio.Sound;
+import com.badlogic.gdx.graphics.FPSLogger;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.Sprite;
 import com.badlogic.gdx.math.MathUtils;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.TimeUtils;
-import com.ismael.gamedrop.Drop;
 
 public class GameScreen implements Screen {
 
     final Drop game;
-
     Texture dropImage;
     Texture bucketImage;
+    Texture background;
     Sound dropSound;
     Music rainMusic;
     OrthographicCamera camera;
     Rectangle bucket;
     Array<Rectangle> raindrops;
+
     long lastDropTime;
     int dropsGathered;
+    GameOverScreen gameOver;
 
-    public GameScreen(final Drop gam) {
-        this.game = gam;
+    long lastFrameTime;
+    private FPSLogger fpsLogger;
+
+
+    public GameScreen(final Drop game) {
+        this.game = game;
+        gameOver = new GameOverScreen(game);
 
         // load the images for the droplet and the bucket, 64x64 pixels each
         dropImage = new Texture(Gdx.files.internal("droplet.png"));
         bucketImage = new Texture(Gdx.files.internal("bucket.png"));
+        background = new Texture(Gdx.files.internal("rain_background.png"));
 
         // load the drop sound effect and the rain background "music"
         dropSound = Gdx.audio.newSound(Gdx.files.internal("drop.wav"));
@@ -56,7 +67,7 @@ public class GameScreen implements Screen {
         bucket.height = 64;
 
         // create the raindrops array and spawn the first raindrop
-        raindrops = new Array<Rectangle>();
+        raindrops = new Array<>();
         spawnRaindrop();
 
     }
@@ -86,11 +97,17 @@ public class GameScreen implements Screen {
         // coordinate system specified by the camera.
         game.batch.setProjectionMatrix(camera.combined);
 
-        // begin a new batch and draw the bucket and
-        // all drops
         game.batch.begin();
+
+        long currentTime = TimeUtils.nanoTime();
+        float elapsedTime = (currentTime - lastFrameTime) / 1_000_000f; // tiempo en milisegundos
+        lastFrameTime = currentTime;
+
         game.font.draw(game.batch, "Drops Collected: " + dropsGathered, 0, 480);
+        game.font.draw(game.batch, "FPS: " + fpsLogger, 600, 480);
+
         game.batch.draw(bucketImage, bucket.x, bucket.y);
+        game.batch.draw(background,Gdx.graphics.getWidth()/2,Gdx.graphics.getHeight()/2);
         for (Rectangle raindrop : raindrops) {
             game.batch.draw(dropImage, raindrop.x, raindrop.y);
         }
@@ -125,13 +142,23 @@ public class GameScreen implements Screen {
         while (iter.hasNext()) {
             Rectangle raindrop = iter.next();
             raindrop.y -= 200 * Gdx.graphics.getDeltaTime();
+
+            if(raindrop.y < 10){
+                dispose();
+                game.setScreen(gameOver);
+            }
+
             if (raindrop.y + 64 < 0)
                 iter.remove();
+
             if (raindrop.overlaps(bucket)) {
                 dropsGathered++;
                 dropSound.play();
                 iter.remove();
             }
+
+
+
         }
     }
 
@@ -143,6 +170,8 @@ public class GameScreen implements Screen {
     public void show() {
         // start the playback of the background music
         // when the screen is shown
+        lastFrameTime = TimeUtils.nanoTime();
+        fpsLogger = new FPSLogger();
         rainMusic.play();
     }
 
@@ -164,6 +193,10 @@ public class GameScreen implements Screen {
         bucketImage.dispose();
         dropSound.dispose();
         rainMusic.dispose();
+    }
+
+    public void gameOver(){
+
     }
 
 }
