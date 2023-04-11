@@ -99,12 +99,8 @@ public class GameScreen implements Screen {
 
         game.batch.begin();
 
-        long currentTime = TimeUtils.nanoTime();
-        float elapsedTime = (currentTime - lastFrameTime) / 1_000_000f; // tiempo en milisegundos
-        lastFrameTime = currentTime;
-
         game.font.draw(game.batch, "Drops Collected: " + dropsGathered, 0, 480);
-        game.font.draw(game.batch, "FPS: " + fpsLogger, 600, 480);
+        game.font.draw(game.batch, "FPS: " + Gdx.graphics.getFramesPerSecond(), 600, 480);
 
         game.batch.draw(bucketImage, bucket.x, bucket.y);
         game.batch.draw(background,Gdx.graphics.getWidth()/2,Gdx.graphics.getHeight()/2);
